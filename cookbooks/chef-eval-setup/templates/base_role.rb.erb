@@ -1,0 +1,16 @@
+name "base"
+description "baseline config"
+run_list(
+  "recipe[audit::default]"
+)
+default_attributes(
+  "audit": {
+    "reporter": "chef-server-automate",
+    "profiles": [
+      {
+        "name": "DevSec Linux Security Baseline",
+        "compliance": "admin/linux-baseline"
+      }
+    ]
+  }
+)

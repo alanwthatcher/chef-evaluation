@@ -1,0 +1,83 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# this is set high to give some flexiblity.
+# ideally this would be passed from an environment var
+NODE_COUNT = 10
+
+Vagrant.configure(2) do |config|
+
+  config.vm.define :a2 do |a2|
+    a2.vm.provider "virtualbox" do |v|
+      v.memory = 2048
+      v.cpus = 2
+    end
+    a2.vm.box = "bento/ubuntu-16.04"
+# TODO find a more restricted way to give the hab user write access to bkps/a2/*
+    a2.vm.synced_folder ".", "/opt/a2-testing", create: true, mount_options: ["dmode=777,fmode=777"]
+    a2.vm.hostname = "automate-deployment.test"
+    a2.vm.network "private_network", ip: "<%= @a2_ip %>"
+    a2.vm.boot_timeout = 600
+    a2.vm.provision "shell", inline: "/opt/a2-testing/scripts/setup_automate.sh /opt/a2-testing"
+  end
+
+  config.vm.define :srvr do |srvr|
+    srvr.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 2
+    end
+    srvr.vm.box = "bento/ubuntu-16.04"
+    srvr.vm.hostname = "chef-server.test"
+    srvr.vm.synced_folder ".", "/opt/a2-testing", create: true
+    srvr.vm.network :private_network, ip: "<%= @server_ip %>"
+    srvr.ssh.username = "vagrant"
+    srvr.ssh.password = "vagrant"
+    srvr.vm.provision "shell", inline: "/opt/a2-testing/scripts/setup_server.sh /opt/a2-testing"
+  end
+
+  NODE_COUNT.times do |i|
+    node_id = "node1#{i}"
+    config.vm.define node_id do |node|
+      node.vm.provider "virtualbox" do |vb|
+        vb.memory = 512
+        vb.cpus = 2
+      end
+      node.vm.box = "bento/ubuntu-16.04"
+      node.vm.hostname = "#{node_id}.test"
+      node.vm.synced_folder ".", "/opt/a2-testing", create: true
+      node.vm.network :private_network, ip: "<%= @node_ip_base %>#{i}"
+      node.ssh.username = "vagrant"
+      node.ssh.password = "vagrant"
+      node.vm.provision "shell", inline: "/opt/a2-testing/scripts/setup_node.sh /opt/a2-testing #{i}"
+    end
+  end
+
+  config.vm.define :work do |work|
+    work.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 2
+    end
+    work.vm.box = "bento/ubuntu-16.04"
+    work.vm.hostname = "workstation.test"
+    work.vm.synced_folder ".", "/opt/a2-testing", create: true
+    work.vm.network :private_network, ip: "<%= @workstation_ip %>"
+    work.ssh.username = "vagrant"
+    work.ssh.password = "vagrant"
+    work.vm.provision "shell", inline: "/opt/a2-testing/scripts/setup_workstation.sh"
+  end
+
+  config.vm.define :bldr do |bldr|
+    bldr.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 2
+    end
+    bldr.vm.box = "bento/ubuntu-16.04"
+    bldr.vm.hostname = "bldr.test"
+    bldr.vm.synced_folder ".", "/opt/a2-testing", create: true
+    bldr.vm.network :private_network, ip: "<%= @builder_ip %>"
+    bldr.ssh.username = "vagrant"
+    bldr.ssh.password = "vagrant"
+    bldr.vm.provision "shell", inline: "/opt/a2-testing/scripts/setup_builder.sh"
+  end
+
+end

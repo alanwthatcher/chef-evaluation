@@ -1,0 +1,11 @@
+{
+  "base_dir": "/Users/alan/Desktop/demo/chef-evaluation",
+  "run_user": "alan",
+  "run_group": "staff",
+  "a2_ip": "192.168.33.199",
+  "server_ip": "192.168.33.200",
+  "node_ip_base": "192.168.33.1",
+  "builder_ip": "192.168.33.197",
+  "workstation_ip": "192.168.33.198",
+  "use_hosts_entries": "true"
+}

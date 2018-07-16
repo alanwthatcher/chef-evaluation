@@ -502,6 +502,7 @@ case $1 in
       case $o in
         b|builder )
           shift
+          echo "Create builder node"
           is_bldr=true
           ;;
         c|count )
@@ -513,10 +514,12 @@ case $1 in
           ;;
         w|workstation )
           shift
+          echo "Create workstation"
           is_work=true
           ;;
         x )
           shift
+	  echo "Do not build infra"
           is_infra=false
           ;;
         * )
@@ -524,9 +527,9 @@ case $1 in
           ;;
       esac
     done
-    if [ "$is_infra" = true ]; then setup_infra; fi
-    if [ "$is_work" = true ]; then setup_workstation; fi
-    if [ "$is_bldr" = true ]; then setup_builder; fi
+    #if [ "$is_infra" = true ]; then echo "Setting up infra"; setup_infra; fi
+    if [ "$is_work" = true ]; then echo "Setting up workstation";setup_workstation; fi
+    if [ "$is_bldr" = true ]; then "Setting up builder"; setup_builder; fi
     ;;
   backup )
     shift
