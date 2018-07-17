@@ -44,14 +44,10 @@ do_error() {
 do_cookbook_upload() {
   echo "Uploading cookbooks..."
   if [ ! -f $1/.chef/knife.rb ] ; then do_error "knife.rb doesn't exist" ; fi
-  mkdir -p $1/cookbooks && cd $1/cookbooks
-  #ckbks=(audit)
   for c in $2
   do
     # cookbooks
     if [ "$( knife cookbook list | grep $c )" == "" ]; then
-      knife cookbook site download $c
-      tar -xzvf $c*.tar.gz
       knife cookbook upload $c
     else
       echo "$c exists. Nothing to do here."

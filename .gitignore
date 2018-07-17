@@ -19,6 +19,7 @@ tmp
 tmp/*
 scripts
 scripts/*
+setup-files/chef-eval-setup.json-e
 
 a2-token
 automate.license

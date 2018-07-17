@@ -69,7 +69,7 @@ directory "#{node['base_dir']}/logs" do
 end
 
 # Adding host entries for ease of use
-if node['use_hosts_entries'].eql? 'true'
+if node['use_hosts_entries'].eql? 'yes'
   append_if_no_line 'Add A2 to hosts: automate-deployment.test' do
     line "#{node['a2_ip']}  automate-deployment.test"
     path '/etc/hosts'
@@ -91,7 +91,7 @@ if node['use_hosts_entries'].eql? 'true'
   end
 
   # Loop through and add all nodes: ugly-ish, but least chance of making trouble
-  for i in 0..9
+  (0..9).each do |i|
     append_if_no_line "Add node1#{i} to hosts: node1#{i}.test" do
       line "#{node['node_ip_base']}#{i}  node1#{i}.test"
       path '/etc/hosts'

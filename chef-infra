@@ -52,190 +52,20 @@ usage() {
 
   exit 0;
 }
-#
-# create base role
-# This functionality was put in a role for simplicity, in a production scenario
-# consider using a wrapper cookbook.
-create_base_rb() {
-    mkdir -p $WKDIR/roles && cat > $WKDIR/roles/base.rb <<EOL
-name "base"
-description "baseline config"
-run_list(
-  "recipe[audit::default]"
-)
-default_attributes(
-  "audit": {
-    "reporter": "chef-server-automate",
-    "profiles": [
-      {
-        "name": "DevSec Linux Security Baseline",
-        "compliance": "admin/linux-baseline"
-      }
-    ]
-  }
-)
-EOL
-}
-#
-# create local knife config
-#
-create_knife_rb() {
-    mkdir -p $WKDIR/.chef && cat > $WKDIR/.chef/knife.rb <<EOL
-current_dir = File.dirname(__FILE__)
-node_name                "admin"
-client_key               "../.chef/admin.pem"
-validation_client_name   "a2-validator"
-validation_key           "../.chef/a2-validator.pem"
-chef_server_url          "https://chef-server.test/organizations/a2"
-cookbook_path            ["#{current_dir}/../cookbooks"]
-EOL
-}
-#
-# create Vagrantfile
-#
-create_vagrantfile() {
-    cat > $WKDIR/Vagrantfile <<EOL
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
 
-# this is set high to give some flexiblity.
-# ideally this would be passed from an environment var
-NODE_COUNT = 10
-
-Vagrant.configure(2) do |config|
-
-  config.vm.define :a2 do |a2|
-    a2.vm.provider "virtualbox" do |v|
-      v.memory = 2048
-      v.cpus = 2
-    end
-    a2.vm.box = "bento/ubuntu-16.04"
-# TODO find a more restricted way to give the hab user write access to bkps/a2/*
-    a2.vm.synced_folder ".", "${GUEST_WKDIR}", create: true, mount_options: ["dmode=777,fmode=777"]
-    a2.vm.hostname = 'automate-deployment.test'
-    a2.vm.network 'private_network', ip: '192.168.33.199'
-    a2.vm.boot_timeout = 600
-    a2.vm.provision "shell", inline: "${GUEST_WKDIR}/tmp/a2_vm_provision.sh /opt/a2-testing"
-  end
-
-  config.vm.define :srvr do |srvr|
-    srvr.vm.provider "virtualbox" do |vb|
-      vb.memory = 512
-      vb.cpus = 2
-    end
-    srvr.vm.box = "bento/ubuntu-16.04"
-    srvr.vm.hostname = "chef-server.test"
-    srvr.vm.synced_folder ".", "${GUEST_WKDIR}", create: true
-    srvr.vm.network :private_network, ip: "192.168.33.200"
-    srvr.ssh.username = "vagrant"
-    srvr.ssh.password = "vagrant"
-    srvr.vm.provision "shell", inline: "${GUEST_WKDIR}/tmp/srvr_vm_provision.sh /opt/a2-testing"
-  end
-
-  NODE_COUNT.times do |i|
-    node_id = "node1#{i}"
-    config.vm.define node_id do |node|
-      node.vm.provider "virtualbox" do |vb|
-        vb.memory = 512
-        vb.cpus = 2
-      end
-      node.vm.box = "bento/ubuntu-16.04"
-      node.vm.hostname = "#{node_id}.test"
-      node.vm.synced_folder ".", "${GUEST_WKDIR}", create: true
-      node.vm.network :private_network, ip: "192.168.33.1#{i}"
-      node.ssh.username = "vagrant"
-      node.ssh.password = "vagrant"
-      node.vm.provision "shell", inline: "${GUEST_WKDIR}/tmp/node_vm_provision.sh /opt/a2-testing #{i}"
-    end
-  end
-
-  config.vm.define :work do |work|
-    work.vm.provider "virtualbox" do |vb|
-      vb.memory = 512
-      vb.cpus = 2
-    end
-    work.vm.box = "bento/ubuntu-16.04"
-    work.vm.hostname = "workstation.test"
-    work.vm.synced_folder ".", "${GUEST_WKDIR}", create: true
-    work.vm.network :private_network, ip: "192.168.33.198"
-    work.ssh.username = "vagrant"
-    work.ssh.password = "vagrant"
-    work.vm.provision "shell", inline: "${GUEST_WKDIR}/tmp/work_vm_provision.sh"
-  end
-
-  config.vm.define :bldr do |bldr|
-    bldr.vm.provider "virtualbox" do |vb|
-      vb.memory = 512
-      vb.cpus = 2
-    end
-    bldr.vm.box = "bento/ubuntu-16.04"
-    bldr.vm.hostname = "bldr.test"
-    bldr.vm.synced_folder ".", "${GUEST_WKDIR}", create: true
-    bldr.vm.network :private_network, ip: "192.168.33.197"
-    bldr.ssh.username = "vagrant"
-    bldr.ssh.password = "vagrant"
-    bldr.vm.provision "shell", inline: "${GUEST_WKDIR}/tmp/bldr_vm_provision.sh"
-  end
-
-end
-EOL
-}
-
-create_helpers() {
-  cat > rm-node <<EOL
-#!/bin/bash
-if [ "\$1" == "" ] ;
-then
-  echo "Specify a node name"
-  exit
-fi
-knife node delete \$1
-knife client delete \$1
-vagrant destroy \$1 -f
-EOL
-  chmod +x rm-node
-}
-
-do_build_recreate() {
-  echo "Recreating knife.rb..."
-  create_knife_rb
-  echo "Recreating roles/base.rb..."
-  create_base_rb
-  echo "Recreating Vagrantfile..."
-  create_vagrantfile 2>/dev/null
-}
-
-do_build() {
-  echo "Creating local files..."
-  if [ -f $WKDIR/.chef/knife.rb ] ; then
-    echo "knife.rb exists.  Nothing to do here."
-  else
-    echo "Creating knife.rb..."
-    create_knife_rb
-  fi
-  if [ -f $WKDIR/roles/base.rb ] ; then
-    echo "base.rb exists.  Nothing to do here."
-  else
-    echo "Creating roles/base.rb..."
-    create_base_rb
-  fi
-  if [ -f $WKDIR/Vagrantfile ] ; then
-    echo "Vagrantfile exists.  Nothing to do here."
-  else
-    echo "Creating Vagrantfile..."
-    create_vagrantfile 2>/dev/null
-  fi
-  echo "Local files complete."
+do_config() {
+  echo "Configuring configurator (./setup-files/chef-eval-setup.json)"
+  sed -i -e "s/.*base_dir.*/  \"base_dir\": \"$(pwd | sed 's,/,\\/,g')\",/" setup-files/chef-eval-setup.json
+  sed -i -e "s/.*run_user.*/  \"run_user\": \"$(id -un)\",/" setup-files/chef-eval-setup.json
+  sed -i -e "s/.*run_group.*/  \"run_group\": \"$(id -gn)\",/" setup-files/chef-eval-setup.json
+  echo "Creating local configuration items..."
+  sudo chef-client -z -o "recipe[chef-eval-setup::setup_infra]" -j setup-files/chef-eval-setup.json
 }
 #
 # set up managed nodes
 # $1 = node count
 setup_nodes() {
   echo "Setting up managed nodes..."
-  mkdir -p $WKDIR/tmp
-  cp $WKDIR/scripts/setup_node.sh $WKDIR/tmp/node_vm_provision.sh
-  chmod +x $WKDIR/tmp/node_vm_provision.sh
-
   for (( i=0; i<$1; i++ ))
   do
     if [ "$(vagrant status node1$i | grep 'running (virtualbox)')" == "" ];
@@ -244,7 +74,6 @@ setup_nodes() {
     else
       echo "node1$i is running. Nothing to do here."
     fi
-    add_host 192.168.33.1$i node1$i.test
   done
   echo "Managed nodes set up complete."
 }
@@ -255,51 +84,28 @@ setup_nodes() {
 #
 setup_infra() {
   echo "Begin Chef Infrastructure setup..."
-  # create files
-  # add chef dir
-  mkdir -p $WKDIR/.chef
-  mkdir -p $WKDIR/logs
-  mkdir -p $WKDIR/tmp
-  cp $WKDIR/scripts/setup_automate.sh $WKDIR/tmp/a2_vm_provision.sh && chmod +x $WKDIR/tmp/a2_vm_provision.sh
-  cp $WKDIR/scripts/setup_server.sh $WKDIR/tmp/srvr_vm_provision.sh && chmod +x $WKDIR/tmp/srvr_vm_provision.sh
 
-  do_build
-  echo "Setting up Automate and Chef Server..."
+  echo "Bringing up Chef Server and Automate. If this environment is new, it will take some time..."
   # Check status of Automate
   a2_mode='provision'
-  if [ "$(vagrant status a2 | grep 'running (virtualbox)')" == "" ]; then a2_mode='up' ; fi
-  # Check status of Chef Server
-  srvr_mode='provision'
-  if [ "$(vagrant status srvr | grep 'running (virtualbox)')" == "" ]; then srvr_mode='up' ; fi
-  # clean up any last_run leftovers that will get in the way
+
   pids=""
-  i=0
-  # a2-token is written out by a successful a2 installation
-  if [ ! -f $WKDIR/a2-token ] ; then
-    vagrant $a2_mode a2 >/dev/tty 2>&1 &
-    pids[$i]=$!
-    i=$i+1
-  fi
-  vagrant $srvr_mode srvr >/dev/tty 2>&1 &
-  pids[$i]=$!
+  vagrant up a2 >/dev/tty 2>&1 &
+  pids[0]=$!
+  vagrant up srvr >/dev/tty 2>&1 &
+  pids[1]=$!
+
   # wait for all pids
   for pid in ${pids[*]}; do
     wait $pid
   done
-  if [ ! -f $WKDIR/a2-token ] ; then do_error "a2-token doesn't exist"; fi
-  add_host 192.168.33.200 chef-server.test
-  add_host 192.168.33.199 automate-deployment.test
+  if [ ! -f $WKDIR/a2-token ] ; then do_error "a2-token doesn't exist, setup was not successful"; fi
   echo "Automate and Chef Server set up complete."
 
   echo "Make compliance profiles available..."
   # This is an API call to Automate to make baseline profile available with an
   curl -d '{"name": "linux-baseline", "version": "2.2.0"}' -H "Content-Type: application/json" -H "api-token: $(<./a2-token)" -X POST 'https://automate-deployment.test/api/v0/compliance/profiles?owner=admin' --insecure
   #TODO check for error and print helpful message
-  echo "Configure Automate for backups"
-  # configure automate to keep backups in the shared directory
-#  vagrant ssh a2 -c "if [ ! -f backup_config.toml ]; then sudo printf \"[global.v1.backups.filesystem]\npath = '${GUEST_WKDIR}/bkps/a2'\n\" > backup_config.toml && sudo ./chef-automate config patch backup_config.toml; fi"
-# # Attempt to work around the inability to restore from ^^ backup shared dir location set ^^ above
-#  vagrant ssh a2 -c "if [ ! -f bak_ln_done ]; then cd /var/opt/chef-automate && sudo mv backups /tmp && sudo ln -s ${GUEST_WKDIR}/bkps/a2 backups && touch /home/vagrant/bak_ln_done; fi"
 
   echo "Fetch ssl cert from Chef Server..."
   knife ssl fetch
@@ -322,19 +128,11 @@ setup_infra() {
 }
 
 setup_workstation() {
-  mkdir -p $WKDIR/tmp
-  cp $WKDIR/scripts/setup_workstation.sh $WKDIR/tmp/work_vm_provision.sh
-  chmod +x $WKDIR/tmp/work_vm_provision.sh
   vagrant up work
-  add_host workstation.test 192.168.33.198
 }
 
 setup_builder() {
-  mkdir -p $WKDIR/tmp
-  cp $WKDIR/scripts/setup_builder.sh $WKDIR/tmp/bldr_vm_provision.sh
-  chmod +x $WKDIR/tmp/bldr_vm_provision.sh
   vagrant up bldr
-  add_host builder.test 192.168.33.197
 }
 
 
@@ -405,43 +203,6 @@ do_restore() {
 teardown_infra() {
   echo "Begin Chef Infrastructure teardown"
   if $is_pre ; then echo "-p specified. Only printing actions of this script..." ; fi
-  echo "create temporary removing dir..."
-  if ! $is_pre ; then mkdir -p removing ; fi
-
-  remove_host automate-deployment.test $is_pre
-  remove_host chef-server.test $is_pre
-  remove_host workstation.test $is_pre
-  remove_host builder.test $is_pre
-
-  #TODO remove nodeX.test
-
-  if $is_full ; then
-    echo "clear contents of add.license.etc..."
-    echo "delete binaries ./chef-dk, *.deb and Backups..."
-    if ! $is_pre ; then
-      # directory containing compiled archlinux chef-dk package
-      mv ./pkgs ./removing
-      mv ./bkps ./removing
-    fi
-    echo "delete helper scripts..."
-    if ! $is_pre ; then mv rm-node ./removing ; fi
-  fi
-
-  echo "remove token file..."
-  if ! $is_pre ; then mv -f a2-token ./removing ; fi
-  echo "remove files from .chef..."
-  if ! $is_pre ; then mv -f ./.chef ./removing ; fi
-  echo "remove ./cookbooks dir..."
-  if ! $is_pre ; then mv -f ./cookbooks ./removing ; fi
-  echo "remove ./roles dir..."
-  if ! $is_pre ; then mv -f ./roles ./removing ; fi
-  echo "remove ./bin dir..."
-  if ! $is_pre ; then mv -f ./bin ./removing ; fi
-  echo "remove ./logs dir..."
-  if ! $is_pre ; then mv -f ./logs ./removing ; fi
-  echo "remove ./tmp dir..."
-  if ! $is_pre ; then mv -f ./tmp ./removing ; fi
-
   # make sure user really wants to delete if they did
   # not pass cli argument -y
   if ! $is_yes ;
@@ -452,22 +213,48 @@ teardown_infra() {
           [Yy]* ) break;;
           [Nn]* )
             echo "Ok. Stopping now."
-            if ! $is_pre ; then echo "Recovery can be done manually by moving files out of ./removing" ; fi
             exit;;
           * ) echo "Please answer yes or no.";;
       esac
     done
   fi
 
+  # Remove the hosts entries
+  echo "Removing host entries from /etc/hosts..."
+  sudo chef-client -z -o "recipe[chef-eval-setup::teardown_infra]" -j setup-files/chef-eval-setup.json
+
+  if $is_full ; then
+    echo "delete binaries ./chef-dk, *.deb and Backups..."
+    if ! $is_pre ; then
+      # directory containing compiled archlinux chef-dk package
+      rm -rf ./pkgs
+      rm -rf ./bkps
+    fi
+  fi
+  echo "remove automate.license if present"
+  if ! $is_pre ; then rm -f ./automate.license; fi
+  echo "remove nodes directory"
+  if ! $is_pre ; then sudo rm -rf ./nodes; fi
+    echo "remove nodes directory"
+  if ! $is_pre ; then sudo rm -rf ./nodes; fi
+  echo "remove vm configuration scripts..."
+  if ! $is_pre ; then rm -rf ./scripts; fi
+  echo "remove files from .chef..."
+  if ! $is_pre ; then sudo rm -rf ./.chef; fi
+  echo "remove ./roles dir..."
+  if ! $is_pre ; then rm -rf ./roles; fi
+  echo "remove ./bin dir..."
+  if ! $is_pre ; then rm -rf ./logs; fi
+  echo "remove ./tmp dir..."
+  if ! $is_pre ; then rm -rf ./tmp; fi
+
   echo "vagrant destroy -f removing these vms..."
   vagrant status >/dev/tty 2>&1
   if ! $is_pre ; then vagrant destroy -f ; fi
   echo "remove Vagrantfile..."
-  if ! $is_pre ; then rm -f Vagrantfile ./removing ; fi
+  if ! $is_pre ; then rm -f ./Vagrantfile; fi
   echo "remove ./vagrant dir..."
-  if ! $is_pre ; then mv -f ./.vagrant ./removing ; fi
-  echo "nuke the temporary ./removing dir..."
-  if ! $is_pre ; then rm -rf ./removing ; fi
+  if ! $is_pre ; then rm -rf ./.vagrant; fi
   echo ""
   echo "Teardown of Chef Infrastructure complete. Thanks for playing... :)"
 }
@@ -487,6 +274,7 @@ do_troubleshoot() {
 do_start
 # initalize default flags
 cnt=2
+only_configs=false
 is_full=false
 is_yes=false
 is_pre=false
@@ -498,38 +286,37 @@ is_infra=true
 case $1 in
   setup )
     shift
-    while getopts ":c:bwhx" o; do
+    while getopts ":c:bhowx" o; do
       case $o in
         b|builder )
-          shift
-          echo "Create builder node"
           is_bldr=true
           ;;
         c|count )
           cnt=$OPTARG
-          echo "Create $cnt nodes"
+          shift
+          ;;
+        w|workstation )
+          is_work=true
+          ;;
+        o|onlyconfig )
+          only_configs=true
+          is_infra=false
+          ;;
+        x )
+          is_infra=false
           ;;
         h|help )
           usage
-          ;;
-        w|workstation )
-          shift
-          echo "Create workstation"
-          is_work=true
-          ;;
-        x )
-          shift
-	  echo "Do not build infra"
-          is_infra=false
           ;;
         * )
           usage
           ;;
       esac
     done
-    #if [ "$is_infra" = true ]; then echo "Setting up infra"; setup_infra; fi
-    if [ "$is_work" = true ]; then echo "Setting up workstation";setup_workstation; fi
-    if [ "$is_bldr" = true ]; then "Setting up builder"; setup_builder; fi
+    if [ "$only_configs" = true ]; then do_config; fi
+    if [ "$is_infra" = true ]; then do_config; setup_infra; fi
+    if [ "$is_work" = true ]; then setup_workstation; fi
+    if [ "$is_bldr" = true ]; then setup_builder; fi
     ;;
   backup )
     shift
