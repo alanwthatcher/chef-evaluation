@@ -32,7 +32,9 @@ Ideally, `chef-infra setup` will "just work" and give you everything required.  
 1. Did nodeX converge w/out error? If no, check status of a2 and srvr.  Try `knife ssl fetch && knife cookbook upload audit && knife role from file base.rb`.  Was the DevSec profile added to Automate? If no, log in and do that.
 
 ### Manage nodes
-- Create/install a single node only: `vagrant up [a2|srvr|node1[n]]`
+- Create/install a single node only:
+  - `chef-infra -o`: only create configuration files
+  - `vagrant up [a2|srvr|node1[n]]`: only bring up element(s) desired
 - Retry creation of a single node: `vagrant provision [a2|srvr|node1[n]]`
 
 ---
