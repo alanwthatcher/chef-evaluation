@@ -66,10 +66,10 @@ The Chef nodes are inspected via the DevSec Linux Baseline Compliance profile by
 ## Extra Extra Credit:
 Now that there is a cookbook that will start resolving the control failures, upload it and watch the number of failed controls decrease!
   1. Upload the cookbook to the Chef server (hint: be in the root of the repo)
-    - `knife cookbook upload devsec_hardening`
+      - `knife cookbook upload devsec_hardening`
   2. Modify the `./roles/base.rb` file to include the new recipe
   3. Upload the new role (hint: be in the root of the repo)
-    - `knife role from file roles/base.rb`
+      - `knife role from file roles/base.rb`
 The nodes in this demo run `chef-client` every 5 minutes, and should run the new cookbook on thier next run, and also report to Compliance that the `entropy` control is passed.
 
 ---
