@@ -119,9 +119,13 @@ setup_infra() {
   echo "*******************************************************************"
   echo ""
   echo "To login to Chef Automate, use the following credentials"
-  vagrant ssh a2 -c "sudo cat ./automate-credentials.toml" >/dev/tty 2>&1
+  echo "  url = https://automate-deployment.test"
+  echo "  username = admin"
+  echo "  password = automate!"
   echo ""
   echo "cleanup using chef-infra teardown"
+  echo ""
+  echo "SSH to any running node with: vagrant ssh [node]"
   echo ""
   echo "Chef Infrastructure setup completed."
   echo "*******************************************************************"
@@ -233,6 +237,10 @@ teardown_infra() {
   fi
   echo "remove automate.license if present"
   if ! $is_pre ; then rm -f ./automate.license; fi
+  echo "remove a2-token"
+  if ! $is_pre ; then rm -f ./a2-token; fi
+  echo "remove temp options file"
+  if ! $is_pre ; then rm -f setup-files/chef-eval-setup.json-e; fi
   echo "remove nodes directory"
   if ! $is_pre ; then sudo rm -rf ./nodes; fi
     echo "remove nodes directory"

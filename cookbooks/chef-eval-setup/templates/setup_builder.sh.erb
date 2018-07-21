@@ -7,7 +7,7 @@ create_bldr_env() {
       cat > bldr.env <<EOL
 #!/bin/bash
 export APP_SSL_ENABLED=false
-export APP_URL=http://192.168.33.197
+export APP_URL=http://<%= @builder_ip %>
 export OAUTH_PROVIDER=github
 export OAUTH_USERINFO_URL=https://api.github.com/user
 export OAUTH_AUTHORIZE_URL=https://github.com/login/oauth/authorize

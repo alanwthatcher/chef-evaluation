@@ -28,6 +28,11 @@ end
     owner node['run_user']
     group node['run_group']
     mode '0755'
+    variables 'a2_ip': node['a2_ip'],
+    'server_ip': node['server_ip'],
+    'node_ip_base': node['node_ip_base'],
+    'builder_ip': node['builder_ip'],
+    'workstation_ip': node['workstation_ip']
   end
 end
 

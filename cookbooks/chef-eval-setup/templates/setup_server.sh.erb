@@ -1,8 +1,8 @@
 #!/bin/bash
 
 GUEST_WKDIR=$1
-echo 192.168.33.199 automate-deployment.test | sudo tee -a /etc/hosts
-echo 192.168.33.200 chef-server.test | sudo tee -a /etc/hosts
+echo <%= @a2_ip %> automate-deployment.test | sudo tee -a /etc/hosts
+echo <%= @server_ip %> chef-server.test | sudo tee -a /etc/hosts
 if [ ! -f ${GUEST_WKDIR}/pkgs/srvr/*.deb ]; then
   mkdir -p ${GUEST_WKDIR}/pkgs/srvr;
   cd ${GUEST_WKDIR}/pkgs/srvr;
