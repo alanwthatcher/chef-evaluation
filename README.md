@@ -57,7 +57,7 @@ Once initial setup is complete and the Chef Infrastructure is working, node10 ca
 
 ---
 ## Extra Credit:
-The Chef nodes are inspected via the DevSec Linux Baseline Compliance profile by default. There will be several failed controls by default. There is a cookbook in the ./cookbooks directory called `devsec_hardening` which has a default recipe with the necessary resources to resolve the `entroyp` control failure seen in the Compliance tab details for each node. So, for practice:
+The Chef nodes are inspected via the DevSec Linux Baseline Compliance profile by default. There will be several failed controls by default. There is a cookbook in the ./cookbooks directory called `devsec_hardening` which has a default recipe with the necessary resources to resolve the `entropy` control failure seen in the Compliance tab details for each node. So, for practice:
   1. Use test kitchen to spin a development image and test the `entropy` control that has been copied into the tests for that cookbook
   2. Uncomment the resources in the `default.rb` recipe, which will fix the entropy failure
   3. Converge and test the cookbook to see that the `entropy` control now passes
