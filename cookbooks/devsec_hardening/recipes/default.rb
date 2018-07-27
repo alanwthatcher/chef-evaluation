@@ -15,5 +15,6 @@
 # end
 # 
 # service 'rng-tools' do
-# 	action [:start, :enable]
+#   action [:start, :enable]
 # end
+
