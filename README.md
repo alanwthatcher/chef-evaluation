@@ -57,7 +57,7 @@ Once initial setup is complete and the Chef Infrastructure is working, node10 ca
 
 ---
 ## Extra Credit:
-The Chef nodes are inspected via the DevSec Linux Baseline Compliance profile by default. There will be several failed controls by default. There is a cookbook in the ./cookbooks directory called `devsec_hardening` which has a default recipe with the necessary resources to resolve the `entroyp` control failure seen in the Compliance tab details for each node. So, for practice:
+The Chef nodes are inspected via the DevSec Linux Baseline Compliance profile by default. There will be several failed controls by default. There is a cookbook in the ./cookbooks directory called `devsec_hardening` which has a default recipe with the necessary resources to resolve the `entropy` control failure seen in the Compliance tab details for each node. So, for practice:
   1. Use test kitchen to spin a development image and test the `entropy` control that has been copied into the tests for that cookbook
   2. Uncomment the resources in the `default.rb` recipe, which will fix the entropy failure
   3. Converge and test the cookbook to see that the `entropy` control now passes
@@ -66,10 +66,10 @@ The Chef nodes are inspected via the DevSec Linux Baseline Compliance profile by
 ## Extra Extra Credit:
 Now that there is a cookbook that will start resolving the control failures, upload it and watch the number of failed controls decrease!
   1. Upload the cookbook to the Chef server (hint: be in the root of the repo)
-    - `knife cookbook upload devsec_hardening`
+      - `knife cookbook upload devsec_hardening`
   2. Modify the `./roles/base.rb` file to include the new recipe
   3. Upload the new role (hint: be in the root of the repo)
-    - `knife role from file roles/base.rb`
+      - `knife role from file roles/base.rb`
 The nodes in this demo run `chef-client` every 5 minutes, and should run the new cookbook on thier next run, and also report to Compliance that the `entropy` control is passed.
 
 ---
